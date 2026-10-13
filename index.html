@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Hollow Station</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -18,10 +18,19 @@ button.g{background:transparent;color:var(--tx);border-color:var(--ln);text-alig
 #pr{position:fixed;bottom:34px;left:50%;transform:translateX(-50%);z-index:2;font-size:26px;font-weight:700;text-shadow:0 2px 6px #000;pointer-events:none;text-align:center}
 #toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:var(--pn);border:2px solid var(--am);padding:8px 18px;z-index:6;display:none;font-size:22px}
 #vig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at center,transparent 45%,#000b 100%)}
+canvas{touch-action:none}body{overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+#mob{display:none;position:fixed;inset:0;z-index:3;pointer-events:none;touch-action:none}
+#js{position:absolute;left:24px;bottom:28px;width:140px;height:140px;border-radius:50%;background:#18232caa;border:2px solid var(--ln);pointer-events:auto;touch-action:none}
+#jk{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:var(--am);opacity:.85}
+#acts{position:absolute;right:20px;bottom:28px;display:flex;flex-direction:column;gap:12px;align-items:flex-end;pointer-events:auto}
+#acts button{width:104px;height:60px;font-size:22px;touch-action:none}#bU{width:124px;height:84px}
+#bK{background:var(--rd);border-color:var(--rd);color:#fff}#bR{background:var(--mt);border-color:var(--mt)}
+body.t #pr{bottom:190px;font-size:22px}
 </style></head><body>
 <div id="vig"></div><div id="toast"></div>
-<div id="hud"><div id="role"></div><div id="bar"><i></i></div><div id="help">WASD move · drag mouse to turn camera<br>E use / repair · Q eliminate · R report body</div></div>
+<div id="hud"><div id="role"></div><div id="bar"><i></i></div><div id="help">WASD move · drag mouse to turn camera<br>E use / repair · K eliminate · R report body</div></div>
 <div id="pr"></div>
+<div id="mob"><div id="js"><i id="jk"></i></div><div id="acts"><button id="bR">REPORT</button><button id="bK">KILL</button><button id="bU">USE</button></div></div>
 <div class="ov on" id="menu"><div class="card"><h1>Hollow Station</h1><p>3D social deduction for 2–10 players. Repair the station's consoles, or eliminate the crew without getting caught.</p>
 <input id="nm" maxlength="12" placeholder="Your name"><button id="hb">Host a game</button>
 <div class="row"><input id="cd" maxlength="4" placeholder="Room code"><button id="jb">Join</button></div></div></div>
@@ -115,24 +124,35 @@ const PM={};let bodyKey='',bodyG=[];
 const kk=e=>e.key.length>1?e.key:e.key.toLowerCase();
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const k=kk(e);keys[k]=1;const pl=S.p[myId];if(S.ph!=='play'||!pl||!pl.a)return;
  if(k==='e'){if(nt>=0)hold=1;else if(Math.hypot(me.x,me.z)<3)send({t:'btn'})}
- if(k==='q'&&role==='s'){const t=nearTarget();if(t&&Date.now()-killAt>15000){send({t:'kill',id:t});killAt=Date.now()}}
+ if(k==='k'&&role==='s'){const t=nearTarget();if(t&&Date.now()-killAt>15000){send({t:'kill',id:t});killAt=Date.now()}}
  if(k==='r')send({t:'rep'})});
 addEventListener('keyup',e=>{const k=kk(e);keys[k]=0;if(k==='e'){hold=0;prog=0}});
-addEventListener('pointermove',e=>{if(e.buttons&1)cy-=e.movementX*.006});
+const TOUCH=matchMedia('(pointer:coarse)').matches||'ontouchstart' in window;if(TOUCH){document.body.classList.add('t');$('help').style.display='none'}
+let cp=null,lx=0,jx=0,jy=0,jp=null;
+RD.domElement.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'){cp=e.pointerId;lx=e.clientX}});
+addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){if(e.buttons&1)cy-=e.movementX*.006}else if(e.pointerId===cp){cy-=(e.clientX-lx)*.006;lx=e.clientX}});
+addEventListener('pointerup',e=>{if(e.pointerId===cp)cp=null});addEventListener('pointercancel',e=>{if(e.pointerId===cp)cp=null});
+const js=$('js'),jk=$('jk');
+function jm(e){const r=js.getBoundingClientRect(),h=r.width/2;let dx=e.clientX-(r.left+h),dy=e.clientY-(r.top+h);const l=Math.hypot(dx,dy),m=Math.min(l,h);if(l){dx=dx/l*m;dy=dy/l*m}jk.style.transform=`translate(${dx}px,${dy}px)`;if(m/h<.25){jx=jy=0}else{jx=dx/m;jy=dy/m}}
+js.addEventListener('pointerdown',e=>{jp=e.pointerId;js.setPointerCapture(e.pointerId);jm(e)});
+js.addEventListener('pointermove',e=>{if(e.pointerId===jp)jm(e)});
+const jr=e=>{if(e.pointerId===jp){jp=null;jx=jy=0;jk.style.transform=''}};js.addEventListener('pointerup',jr);js.addEventListener('pointercancel',jr);
+const fk=(t,k)=>dispatchEvent(new KeyboardEvent(t,{key:k}));
+[['bU','e',1],['bK','k',0],['bR','r',0]].forEach(([id,k,h])=>{const b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();fk('keydown',k);if(!h)fk('keyup',k)});if(h)['pointerup','pointercancel','pointerleave'].forEach(v=>b.addEventListener(v,()=>fk('keyup',k)))});
 addEventListener('resize',()=>{RD.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
 function nearTarget(){let b=null,bd=3.4;S.o.forEach(i=>{const q=S.p[i];if(i===myId||!q.a||mates.has(i))return;const d=Math.hypot(me.x-q.x,me.z-q.z);if(d<bd){bd=d;b=i}});return b}
 function push(x,z){for(let k=0;k<2;k++)for(const[a,b,w,d]of W){const nx=Math.max(a-w/2,Math.min(x,a+w/2)),nz=Math.max(b-d/2,Math.min(z,b+d/2));let dx=x-nx,dz=z-nz,l=Math.hypot(dx,dz);if(l<.45){if(!l){dx=1;l=1}x=nx+dx/l*.45;z=nz+dz/l*.45}}return[x,z]}
 setInterval(()=>{if(S.ph==='play')send({t:'pos',x:me.x,z:me.z,r:me.r,rs:S.rs})},50);
 /* ---------- frame ---------- */
 const clk=new THREE.Clock();
-function frame(){requestAnimationFrame(frame);const dt=Math.min(.05,clk.getDelta()),t=clk.elapsedTime,pl=S.p[myId],play=S.ph==='play'&&pl;
- if(play){const ix=(keys.d||keys.ArrowRight?1:0)-(keys.a||keys.ArrowLeft?1:0),iz=(keys.w||keys.ArrowUp?1:0)-(keys.s||keys.ArrowDown?1:0);me.mv=0;
+function frame(){requestAnimationFrame(frame);$('mob').style.display=TOUCH&&S.ph==='play'?'block':'none';$('bK').style.display=role==='s'?'':'none';const dt=Math.min(.05,clk.getDelta()),t=clk.elapsedTime,pl=S.p[myId],play=S.ph==='play'&&pl;
+ if(play){const ix=(keys.d||keys.ArrowRight?1:0)-(keys.a||keys.ArrowLeft?1:0)+jx,iz=(keys.w||keys.ArrowUp?1:0)-(keys.s||keys.ArrowDown?1:0)-jy;me.mv=0;
   if(ix||iz){const l=Math.hypot(ix,iz),fx=-Math.sin(cy),fz=-Math.cos(cy),rx=Math.cos(cy),rz=-Math.sin(cy),vx=(fx*iz+rx*ix)/l,vz=(fz*iz+rz*ix)/l;[me.x,me.z]=push(me.x+vx*5.6*dt,me.z+vz*5.6*dt);me.r=Math.atan2(vx,vz);me.mv=1}
   const al=pl.a,nr=(x,z,r)=>Math.hypot(me.x-x,me.z-z)<r;nt=-1;if(role==='c'&&al)TK.forEach((q,i)=>{if(!S.tk[i]&&nr(q[0],q[1],3))nt=i});
   if(hold&&nt>=0){prog+=dt/2;if(prog>=1){send({t:'task',i:nt});prog=0;hold=0}}else prog=0;
   let pr='';if(al){if(nt>=0)pr=hold?`Repairing… ${Math.round(prog*100)}%`:'Hold E to repair console';else if(nr(0,0,3)&&!(isHost?usedBtn.H:0))pr='Press E for emergency meeting';
-   if(S.b.some(b=>nr(b[0],b[1],4.5)))pr='Press R to report body';else if(role==='s'){const cd=15-(Date.now()-killAt)/1000;if(nearTarget())pr=cd>0?`Eliminate ready in ${Math.ceil(cd)}s`:'Press Q to eliminate'}}else pr='You are a ghost';
-  $('pr').textContent=pr;$('pr').style.color=pr.startsWith('Press Q')?'var(--rd)':'var(--tx)';
+   if(S.b.some(b=>nr(b[0],b[1],4.5)))pr='Press R to report body';else if(role==='s'){const cd=15-(Date.now()-killAt)/1000;if(nearTarget())pr=cd>0?`Eliminate ready in ${Math.ceil(cd)}s`:'Press K to eliminate'}}else pr='You are a ghost';
+  $('pr').textContent=TOUCH?pr.replace('Hold E to','Hold USE to').replace('Press E for','Tap USE for').replace('Press K to','Tap KILL to').replace('Press R to','Tap REPORT to'):pr;$('pr').style.color=pr.startsWith('Press K')?'var(--rd)':'var(--tx)';
   const done=S.tk.filter(x=>x).length;$('bar').firstChild.style.width=(S.tk.length?done/S.tk.length*100:0)+'%'}else $('pr').textContent='';
  S.o.forEach(id=>{const q=S.p[id];if(!q)return;let e=PM[id];if(!e){const g=mkPlayer(q.c),sp=label(q.n,'#fff');sp.position.y=2.2;g.add(sp);sc.add(g);e=PM[id]={g,sp,nc:'#fff',x:q.x,z:q.z,r:0,gh:0};g.position.set(q.x,0,q.z)}
   const self=id===myId,wc=mates.has(id)?'#ff5a5f':'#fff';if(e.nc!==wc){e.nc=wc;e.g.remove(e.sp);e.sp=label(q.n,wc);e.sp.position.y=2.2;e.g.add(e.sp)}
